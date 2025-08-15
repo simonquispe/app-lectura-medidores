@@ -4,26 +4,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const meterPhotoInput = document.getElementById('meterPhoto');
     const uploadButton = document.getElementById('upload-button');
     const fileNameSpan = document.getElementById('file-name');
-    const recordsContainer = document.getElementById('records-container'); // Correct ID
+    const recordsContainer = document.getElementById('records-container');
 
     // --- 2. Defensive check ---
-    // If essential elements are missing, stop the script.
     if (!form || !recordsContainer || !uploadButton || !meterPhotoInput) {
-        console.error("Error Crítico: Uno o más elementos esenciales del HTML no se encontraron. Revisa los IDs en index.html. El script se detendrá.");
-        return; // Stop execution
+        console.error("Error Crítico: Uno o más elementos esenciales del HTML no se encontraron.");
+        return;
     }
 
-    // --- 3. Core Logic (Only runs if the check passes) ---
+    // --- 3. Core Logic ---
 
-    // Function to create and add a new record card
-    const addRecordCard = (meterId, reading, dateTime, location, photoName) => {
+    // Function to create and add a new record card with an image preview
+    const addRecordCard = (meterId, reading, dateTime, location, photoDataUrl) => {
         const card = document.createElement('div');
         card.className = 'record-card';
 
         const photoDiv = document.createElement('div');
         photoDiv.className = 'card-photo';
-        // For now, just show the file name as a placeholder
-        photoDiv.textContent = photoName ? `FOTO: ${photoName}` : 'FOTO: No seleccionada';
+
+        // *** NUEVA LÓGICA DE IMAGEN ***
+        if (photoDataUrl) {
+            const img = document.createElement('img');
+            img.src = photoDataUrl;
+            img.alt = 'Foto del medidor';
+            photoDiv.appendChild(img);
+        } else {
+            photoDiv.textContent = 'Sin Foto';
+        }
 
         const infoDiv = document.createElement('div');
         infoDiv.className = 'card-info';
@@ -36,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         card.appendChild(photoDiv);
         card.appendChild(infoDiv);
-        recordsContainer.prepend(card); // Add the new card at the top
+        recordsContainer.prepend(card);
     };
 
     // Event listener for the main form submission
@@ -45,36 +52,49 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const meterId = form.elements['meterId'].value;
         const reading = form.elements['reading'].value;
-        const photoFile = meterPhotoInput.files.length > 0 ? meterPhotoInput.files[0].name : null;
+        const photoFile = meterPhotoInput.files.length > 0 ? meterPhotoInput.files[0] : null;
 
         const now = new Date();
         const dateTime = now.toLocaleString('es-ES');
 
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    const location = `${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}`;
-                    addRecordCard(meterId, reading, dateTime, location, photoFile);
-                    form.reset();
-                    if (fileNameSpan) fileNameSpan.textContent = '';
-                },
-                (error) => {
-                    console.error('Error de Geolocalización:', error.message);
-                    addRecordCard(meterId, reading, dateTime, 'No disponible', photoFile);
-                    form.reset();
-                    if (fileNameSpan) fileNameSpan.textContent = '';
-                }
-            );
+        // *** LÓGICA MEJORADA CON FILEREADER ***
+        const processRecord = (photoDataUrl = null) => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const location = `${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}`;
+                        addRecordCard(meterId, reading, dateTime, location, photoDataUrl);
+                        form.reset();
+                        if (fileNameSpan) fileNameSpan.textContent = '';
+                    },
+                    (error) => {
+                        console.error('Error de Geolocalización:', error.message);
+                        addRecordCard(meterId, reading, dateTime, 'No disponible', photoDataUrl);
+                        form.reset();
+                        if (fileNameSpan) fileNameSpan.textContent = '';
+                    }
+                );
+            } else {
+                addRecordCard(meterId, reading, dateTime, 'No compatible', photoDataUrl);
+                form.reset();
+                if (fileNameSpan) fileNameSpan.textContent = '';
+            }
+        };
+
+        if (photoFile) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                processRecord(e.target.result); // Pass the Data URL to the processing function
+            };
+            reader.readAsDataURL(photoFile); // Read the file to get the Data URL
         } else {
-            addRecordCard(meterId, reading, dateTime, 'No compatible', photoFile);
-            form.reset();
-            if (fileNameSpan) fileNameSpan.textContent = '';
+            processRecord(); // Process without a photo
         }
     });
 
     // Event listener for the custom "Upload Photo" button
     uploadButton.addEventListener('click', () => {
-        meterPhotoInput.click(); // Trigger the hidden file input
+        meterPhotoInput.click();
     });
 
     // Event listener to show the selected file name
