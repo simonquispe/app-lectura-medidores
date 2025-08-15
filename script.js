@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error("No se encontraron los elementos esenciales del formulario o del contenedor de registros. El script no puede continuar.");
         return;
     } else {
+
         // --- Core function to add a record card to the UI ---
         function addRecordCard(meterId, reading, dateTime, location) {
             // 1. Create the main card container
@@ -39,6 +40,16 @@ document.addEventListener('DOMContentLoaded', () => {
             card.appendChild(photoDiv);
             card.appendChild(infoDiv);
             recordsContainer.prepend(card); // Use prepend to show newest first
+
+        // --- Core function to add a record to the table ---
+        function addRecordToTable(meterId, reading, dateTime, location) {
+            const newRow = recordsBody.insertRow(0); // Insert new records at the top
+
+            newRow.insertCell(0).textContent = meterId;
+            newRow.insertCell(1).textContent = reading;
+            newRow.insertCell(2).textContent = dateTime;
+            newRow.insertCell(3).textContent = location;
+
         }
 
         // --- Event listener for the form submission ---
@@ -62,20 +73,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     (position) => {
                         const latitude = position.coords.latitude.toFixed(5);
                         const longitude = position.coords.longitude.toFixed(5);
+
                         addRecordCard(meterId, reading, dateTime, `${latitude}, ${longitude}`);
+
+                        addRecordToTable(meterId, reading, dateTime, `${latitude}, ${longitude}`);
+
                         form.reset();
                         if (fileNameSpan) fileNameSpan.textContent = '';
                     },
                     (error) => {
                         console.error('Error de geolocalización:', error.message);
+
                         addRecordCard(meterId, reading, dateTime, 'No disponible');
+
+                        addRecordToTable(meterId, reading, dateTime, 'No disponible');
+
                         form.reset();
                         if (fileNameSpan) fileNameSpan.textContent = '';
                     }
                 );
             } else {
                 console.warn('La geolocalización no es compatible con este navegador.');
+
                 addRecordCard(meterId, reading, dateTime, 'No compatible');
+
+                addRecordToTable(meterId, reading, dateTime, 'No compatible');
+
                 form.reset();
                 if (fileNameSpan) fileNameSpan.textContent = '';
             }
