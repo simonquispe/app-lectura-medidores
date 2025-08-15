@@ -112,3 +112,42 @@ input[type="number"]:focus {
     }
 }
 
+
+.records-section {
+    margin-top: 40px;
+}
+
+.records-section h2 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+#records-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+#records-table th,
+#records-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+    font-size: 0.95em;
+}
+
+#records-table th {
+    background-color: #f2f2f2;
+    font-weight: 600;
+    color: #333;
+}
+
+#records-table tbody tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+#records-table tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
