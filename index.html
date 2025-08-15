@@ -22,7 +22,7 @@
           autocomplete="off"
           inputmode="text"
           placeholder="Ej. MPN-001"
-          pattern="^[A-Za-z0-9\-_.]{3,30}$"
+          pattern="^[A-Za-z0-9\\-_.]{3,30}$"
           aria-describedby="meterIdHelp"
         />
         <small id="meterIdHelp" class="hint">
@@ -45,7 +45,6 @@
       </div>
 
       <div class="form-group">
-        <!-- Input de archivo oculto, pero accesible con el label y el botón -->
         <input
           type="file"
           id="meterPhoto"
@@ -56,19 +55,16 @@
           style="display:none"
         />
 
-        <!-- Fallback accesible: clic en el texto abre el file input incluso sin JS -->
         <label for="meterPhoto" class="upload-label">Seleccionar/ Tomar foto</label>
 
-        <!-- Botón que tu script puede usar para abrir el file input -->
         <button type="button" id="upload-button" class="upload-button">
           Subir Foto del Medidor
         </button>
 
         <span id="file-name" class="file-name" aria-live="polite"></span>
 
-        <!-- Vista previa opcional (tu JS puede asignar src) -->
         <div class="preview">
-          <img id="preview-img" alt="Vista previa del medidor" style="display:none; max-height:160px;" />
+          <img id="preview-img" alt="Vista previa del medidor" />
         </div>
       </div>
 
