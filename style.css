@@ -123,31 +123,44 @@ input[type="number"]:focus {
     margin-bottom: 20px;
 }
 
-#records-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
+.record-card {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    padding: 15px;
+    display: flex;
+    gap: 15px;
+    align-items: center;
 }
 
-#records-table th,
-#records-table td {
-    border: 1px solid #ddd;
-    padding: 12px;
-    text-align: left;
+.record-card .card-photo {
+    flex: 0 0 40%; /* Ocupa el 40% del ancho y no crece/decrece */
+    background-color: #e9ecef;
+    height: 120px; /* Altura fija para el contenedor de la foto */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px;
+    font-size: 0.9em;
+    color: #6c757d;
+}
+
+.record-card .card-info {
+    flex: 1; /* Ocupa el espacio restante */
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.record-card .card-info p {
+    margin: 0;
     font-size: 0.95em;
 }
 
-#records-table th {
-    background-color: #f2f2f2;
-    font-weight: 600;
+.record-card .card-info strong {
     color: #333;
-}
-
-#records-table tbody tr:nth-child(even) {
-    background-color: #f9f9f9;
-}
-
-#records-table tbody tr:hover {
-    background-color: #f1f1f1;
+    margin-right: 5px;
 }
 

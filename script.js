@@ -7,13 +7,40 @@ document.addEventListener('DOMContentLoaded', () => {
     const uploadButton = document.getElementById('upload-button');
     const fileNameSpan = document.getElementById('file-name');
 
-    const recordsBody = document.getElementById('records-body');
+    const recordsContainer = document.getElementById('records-container');
 
-    // Defensive check: if the main form or table body is missing, don't proceed.
-    if (!form || !recordsBody) {
-        console.error("No se encontraron los elementos esenciales del formulario o de la tabla. El script no puede continuar.");
+    // Defensive check: if the main form or records container is missing, don't proceed.
+    if (!form || !recordsContainer) {
+        console.error("No se encontraron los elementos esenciales del formulario o del contenedor de registros. El script no puede continuar.");
         return;
     } else {
+
+        // --- Core function to add a record card to the UI ---
+        function addRecordCard(meterId, reading, dateTime, location) {
+            // 1. Create the main card container
+            const card = document.createElement('div');
+            card.className = 'record-card';
+
+            // 2. Create the photo column
+            const photoDiv = document.createElement('div');
+            photoDiv.className = 'card-photo';
+            photoDiv.textContent = 'FOTO'; // Placeholder text
+
+            // 3. Create the info column
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'card-info';
+            infoDiv.innerHTML = `
+                <p><strong>Nº Medidor:</strong> ${meterId}</p>
+                <p><strong>Lectura:</strong> ${reading} kWh</p>
+                <p><strong>Fecha:</strong> ${dateTime}</p>
+                <p><strong>Ubicación:</strong> ${location}</p>
+            `;
+
+            // 4. Assemble the card and add it to the container
+            card.appendChild(photoDiv);
+            card.appendChild(infoDiv);
+            recordsContainer.prepend(card); // Use prepend to show newest first
+
         // --- Core function to add a record to the table ---
         function addRecordToTable(meterId, reading, dateTime, location) {
             const newRow = recordsBody.insertRow(0); // Insert new records at the top
@@ -22,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
             newRow.insertCell(1).textContent = reading;
             newRow.insertCell(2).textContent = dateTime;
             newRow.insertCell(3).textContent = location;
+
         }
 
         // --- Event listener for the form submission ---
@@ -45,20 +73,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     (position) => {
                         const latitude = position.coords.latitude.toFixed(5);
                         const longitude = position.coords.longitude.toFixed(5);
+
+                        addRecordCard(meterId, reading, dateTime, `${latitude}, ${longitude}`);
+
                         addRecordToTable(meterId, reading, dateTime, `${latitude}, ${longitude}`);
+
                         form.reset();
                         if (fileNameSpan) fileNameSpan.textContent = '';
                     },
                     (error) => {
                         console.error('Error de geolocalización:', error.message);
+
+                        addRecordCard(meterId, reading, dateTime, 'No disponible');
+
                         addRecordToTable(meterId, reading, dateTime, 'No disponible');
+
                         form.reset();
                         if (fileNameSpan) fileNameSpan.textContent = '';
                     }
                 );
             } else {
                 console.warn('La geolocalización no es compatible con este navegador.');
+
+                addRecordCard(meterId, reading, dateTime, 'No compatible');
+
                 addRecordToTable(meterId, reading, dateTime, 'No compatible');
+
                 form.reset();
                 if (fileNameSpan) fileNameSpan.textContent = '';
             }
