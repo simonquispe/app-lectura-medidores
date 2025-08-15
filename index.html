@@ -1,40 +1,86 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro de Lectura de Medidor</title>
-   
-    <link rel="stylesheet" href="estilo.css?v=1.0">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Registro de Lectura de Medidor</title>
+  <link rel="stylesheet" href="estilo.css?v=1.0" />
+  <meta name="theme-color" content="#111827" />
 </head>
 <body>
-    <div class="container">
-        <h1>Registro de Lectura</h1>
-        <form id="reading-form">
-            <div class="form-group">
-                <label for="meterId">Número de Medidor</label>
-                <input type="text" id="meterId" name="meterId" required>
-            </div>
-            <div class="form-group">
-                <label for="reading">Lectura en kWh</label>
-                <input type="number" id="reading" name="reading" step="0.01" required>
-            </div>
-            <div class="form-group">
-                <input type="file" id="meterPhoto" name="meterPhoto" accept="image/*" style="display: none;" required>
-                <button type="button" id="upload-button" class="upload-button">Subir Foto del Medidor</button>
-                <span id="file-name" class="file-name"></span>
-            </div>
-            <button type="submit" class="submit-button">Guardar Registro</button>
-        </form>
+  <main class="container">
+    <h1>Registro de Lectura</h1>
 
+    <form id="reading-form" novalidate>
+      <div class="form-group">
+        <label for="meterId">Número de Medidor</label>
+        <input
+          type="text"
+          id="meterId"
+          name="meterId"
+          required
+          autocomplete="off"
+          inputmode="text"
+          placeholder="Ej. MPN-001"
+          pattern="^[A-Za-z0-9\-_.]{3,30}$"
+          aria-describedby="meterIdHelp"
+        />
+        <small id="meterIdHelp" class="hint">
+          Usa letras/números y guiones. Ej: MPN-001
+        </small>
+      </div>
 
-        <section id="records-container" class="records-section">
-            <h2>Registros Guardados</h2>
-            <!-- Las tarjetas de registro se añadirán aquí dinámicamente -->
-        </section>
+      <div class="form-group">
+        <label for="reading">Lectura en kWh</label>
+        <input
+          type="number"
+          id="reading"
+          name="reading"
+          step="0.01"
+          min="0"
+          required
+          inputmode="decimal"
+          placeholder="Ej. 1234.56"
+        />
+      </div>
 
-    </div>
-    <script src="script.js"></script>
+      <div class="form-group">
+        <!-- Input de archivo oculto, pero accesible con el label y el botón -->
+        <input
+          type="file"
+          id="meterPhoto"
+          name="meterPhoto"
+          accept="image/*"
+          capture="environment"
+          required
+          style="display:none"
+        />
+
+        <!-- Fallback accesible: clic en el texto abre el file input incluso sin JS -->
+        <label for="meterPhoto" class="upload-label">Seleccionar/ Tomar foto</label>
+
+        <!-- Botón que tu script puede usar para abrir el file input -->
+        <button type="button" id="upload-button" class="upload-button">
+          Subir Foto del Medidor
+        </button>
+
+        <span id="file-name" class="file-name" aria-live="polite"></span>
+
+        <!-- Vista previa opcional (tu JS puede asignar src) -->
+        <div class="preview">
+          <img id="preview-img" alt="Vista previa del medidor" style="display:none; max-height:160px;" />
+        </div>
+      </div>
+
+      <button type="submit" class="submit-button">Guardar Registro</button>
+    </form>
+
+    <section id="records-container" class="records-section" aria-live="polite">
+      <h2>Registros Guardados</h2>
+      <!-- Tarjetas dinámicas -->
+    </section>
+  </main>
+
+  <script src="script.js" defer></script>
 </body>
 </html>
