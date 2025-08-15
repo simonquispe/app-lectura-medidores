@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Lectura de Medidor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Registro de Lectura</h1>
+        <form id="reading-form">
+            <div class="form-group">
+                <label for="meterId">Número de Medidor</label>
+                <input type="text" id="meterId" name="meterId" required>
+            </div>
+            <div class="form-group">
+                <label for="reading">Lectura en kWh</label>
+                <input type="number" id="reading" name="reading" step="0.01" required>
+            </div>
+            <div class="form-group">
+                <input type="file" id="meterPhoto" name="meterPhoto" accept="image/*" style="display: none;" required>
+                <button type="button" id="upload-button" class="upload-button">Subir Foto del Medidor</button>
+                <span id="file-name" class="file-name"></span>
+            </div>
+            <button type="submit" class="submit-button">Guardar Registro</button>
+        </form>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
