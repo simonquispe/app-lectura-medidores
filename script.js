@@ -106,3 +106,66 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
+
+/* --- Estilos para la Tarjeta de Registro --- */
+.record-card {
+    display: flex; /* Pone la foto y la info una al lado de la otra */
+    align-items: center; /* Centra verticalmente los contenidos */
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    gap: 15px; /* Espacio entre la foto y la info */
+}
+
+.card-photo {
+    flex-shrink: 0; /* Evita que la columna de la foto se encoja */
+    width: 100px;   /* Ancho fijo para la columna de la foto */
+    height: 100px;  /* Alto fijo para la columna de la foto */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e9e9e9;
+    border-radius: 4px;
+    overflow: hidden; /* Esconde cualquier parte de la imagen que se salga */
+}
+
+.card-photo img {
+    width: 100%;      /* La imagen ocupa todo el ancho de su contenedor */
+    height: 100%;     /* La imagen ocupa todo el alto de su contenedor */
+    object-fit: cover; /* Redimensiona la imagen para cubrir el espacio, recortando si es necesario. ¡Esta es la magia! */
+}
+
+.card-info {
+    flex-grow: 1; /* Permite que la columna de información ocupe el espacio restante */
+}
+
+.card-info p {
+    margin: 5px 0; /* Espaciado entre las líneas de texto */
+    word-break: break-word; /* Evita que textos largos se salgan de la tarjeta */
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
