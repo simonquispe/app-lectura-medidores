@@ -1,108 +1,89 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- 1. Get all elements from the DOM ---
-    const form = document.getElementById('reading-form');
-    const meterPhotoInput = document.getElementById('meterPhoto');
-    const uploadButton = document.getElementById('upload-button');
-    const fileNameSpan = document.getElementById('file-name');
-    const recordsContainer = document.getElementById('records-container');
-
-    // --- 2. Defensive check ---
-    if (!form || !recordsContainer || !uploadButton || !meterPhotoInput) {
-        console.error("Error Crítico: Uno o más elementos esenciales del HTML no se encontraron.");
-        return;
-    }
-
-    // --- 3. Core Logic ---
-
-    // Function to create and add a new record card with an image preview
-    const addRecordCard = (meterId, reading, dateTime, location, photoDataUrl) => {
-        const card = document.createElement('div');
-        card.className = 'record-card';
-
-        const photoDiv = document.createElement('div');
-        photoDiv.className = 'card-photo';
-
-        // *** NUEVA LÓGICA DE IMAGEN ***
-        if (photoDataUrl) {
-            const img = document.createElement('img');
-            img.src = photoDataUrl;
-            img.alt = 'Foto del medidor';
-            photoDiv.appendChild(img);
-        } else {
-            photoDiv.textContent = 'Sin Foto';
-        }
-
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'card-info';
-        infoDiv.innerHTML = `
-            <p><strong>Nº Medidor:</strong> ${meterId}</p>
-            <p><strong>Lectura:</strong> ${reading} kWh</p>
-            <p><strong>Fecha:</strong> ${dateTime}</p>
-            <p><strong>Ubicación:</strong> ${location}</p>
-        `;
-
-        card.appendChild(photoDiv);
-        card.appendChild(infoDiv);
-        recordsContainer.prepend(card);
-    };
-
-    // Event listener for the main form submission
-    form.addEventListener('submit', (event) => {
-        event.preventDefault();
-
-        const meterId = form.elements['meterId'].value;
-        const reading = form.elements['reading'].value;
-        const photoFile = meterPhotoInput.files.length > 0 ? meterPhotoInput.files[0] : null;
-
-        const now = new Date();
-        const dateTime = now.toLocaleString('es-ES');
-
-        // *** LÓGICA MEJORADA CON FILEREADER ***
-        const processRecord = (photoDataUrl = null) => {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                        const location = `${position.coords.latitude.toFixed(5)}, ${position.coords.longitude.toFixed(5)}`;
-                        addRecordCard(meterId, reading, dateTime, location, photoDataUrl);
-                        form.reset();
-                        if (fileNameSpan) fileNameSpan.textContent = '';
-                    },
-                    (error) => {
-                        console.error('Error de Geolocalización:', error.message);
-                        addRecordCard(meterId, reading, dateTime, 'No disponible', photoDataUrl);
-                        form.reset();
-                        if (fileNameSpan) fileNameSpan.textContent = '';
-                    }
-                );
-            } else {
-                addRecordCard(meterId, reading, dateTime, 'No compatible', photoDataUrl);
-                form.reset();
-                if (fileNameSpan) fileNameSpan.textContent = '';
-            }
-        };
-
-        if (photoFile) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                processRecord(e.target.result); // Pass the Data URL to the processing function
-            };
-            reader.readAsDataURL(photoFile); // Read the file to get the Data URL
-        } else {
-            processRecord(); // Process without a photo
-        }
-    });
-
-    // Event listener for the custom "Upload Photo" button
-    uploadButton.addEventListener('click', () => {
-        meterPhotoInput.click();
-    });
-
-    // Event listener to show the selected file name
-    meterPhotoInput.addEventListener('change', () => {
-        if (meterPhotoInput.files.length > 0) {
-            if(fileNameSpan) fileNameSpan.textContent = meterPhotoInput.files[0].name;
-        } else {
-            if(fileNameSpan) fileNameSpan.textContent = '';
-        }
-    });
+  document.getElementById('guardarBtn').addEventListener('click', guardarRegistro);
+  cargarRegistros();
 });
+
+function guardarRegistro() {
+  const medidor = document.getElementById('medidor').value;
+  const lectura = document.getElementById('lectura').value;
+  const fotoInput = document.getElementById('foto');
+  const guardarBtn = document.getElementById('guardarBtn');
+
+  if (!medidor || !lectura || !fotoInput.files[0]) {
+    alert("Completa todos los campos.");
+    return;
+  }
+
+  guardarBtn.disabled = true;
+  guardarBtn.textContent = 'Cargando...';
+
+  const reader = new FileReader();
+  reader.readAsDataURL(fotoInput.files[0]);
+  reader.onload = () => {
+    const fotoURL = reader.result;
+    const fecha = new Date().toLocaleString();
+
+    navigator.geolocation.getCurrentPosition(pos => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+
+      const registro = {
+        id: Date.now(), // Unique ID for each record
+        medidor,
+        lectura,
+        fotoURL,
+        fecha,
+        lat,
+        lon
+      };
+
+      let registros = JSON.parse(localStorage.getItem('registros')) || [];
+      registros.push(registro);
+      localStorage.setItem('registros', JSON.stringify(registros));
+
+      mostrarRegistros();
+      document.getElementById('registroForm').reset();
+      guardarBtn.disabled = false;
+      guardarBtn.textContent = 'Guardar Registro';
+
+    }, err => {
+      alert("No se pudo obtener la ubicación: " + err.message);
+      guardarBtn.disabled = false;
+      guardarBtn.textContent = 'Guardar Registro';
+    });
+  };
+}
+
+function cargarRegistros() {
+  mostrarRegistros();
+}
+
+function mostrarRegistros() {
+  const registrosDiv = document.getElementById('registros');
+  registrosDiv.innerHTML = '';
+  let registros = JSON.parse(localStorage.getItem('registros')) || [];
+
+  registros.forEach(registro => {
+    const mapaURL = `https://www.openstreetmap.org/export/embed.html?bbox=${registro.lon-0.001},${registro.lat-0.001},${registro.lon+0.001},${registro.lat+0.001}&layer=mapnik&marker=${registro.lat},${registro.lon}`;
+    const registroDiv = document.createElement('div');
+    registroDiv.className = "registro";
+    registroDiv.innerHTML = `
+      <button class="delete-btn" onclick="eliminarRegistro(${registro.id})">X</button>
+      <p><b>N° Medidor:</b> ${registro.medidor}</p>
+      <p><b>Lectura:</b> ${registro.lectura} kWh</p>
+      <p><b>Fecha:</b> ${registro.fecha}</p>
+      <p><b>Ubicación:</b> ${registro.lat.toFixed(5)}, ${registro.lon.toFixed(5)}<br>
+         <a href="https://www.openstreetmap.org/?mlat=${registro.lat}&mlon=${registro.lon}#map=18/${registro.lat}/${lon}" target="_blank">Ver en Mapa</a></p>
+      <p><b>Foto:</b><br><img src="${registro.fotoURL}" alt="Foto Medidor"></p>
+      <p><b>Mapa:</b><br><iframe src="${mapaURL}"></iframe></p>
+    `;
+    registrosDiv.appendChild(registroDiv);
+  });
+}
+
+function eliminarRegistro(id) {
+  let registros = JSON.parse(localStorage.getItem('registros')) || [];
+  registros = registros.filter(registro => registro.id !== id);
+  localStorage.setItem('registros', JSON.stringify(registros));
+  mostrarRegistros();
+}
