@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro de Lectura de Medidores – Edición Nube ☁️</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <!-- SDK de Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f9; }
+        h1 { color: #333; text-align: center; }
+        h2 { color: #444; border-bottom: 2px solid #007bff; padding-bottom: 5px; }
+        label { font-weight: bold; display: block; margin-top: 15px; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 8px; margin: 5px 0 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .button-container { text-align: center; margin: 20px 0; }
+        button { padding: 10px 15px; font-size: 16px; border-radius: 5px; border: none; cursor: pointer; transition: background-color 0.3s; }
+        .guardar-btn { background-color: #28a745; color: white; }
+        .guardar-btn:disabled { background-color: #94d3a2; cursor: not-allowed; }
+        .borrar-todos-btn { background-color: #dc3545; color: white; margin-left: 10px; }
+        #registros { margin-top: 20px; }
+        .registro { display: flex; gap: 15px; margin-bottom: 15px; border: 1px solid #ddd; border-left: 5px solid #007bff; border-radius: 8px; padding: 15px; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1 ); }
+        .columna { flex: 1; display: flex; flex-direction: column; }
+        .info { flex: 0.8; font-size: 14px; }
+        .mapa { width: 100%; height: 100%; min-height: 300px; border: 1px solid #ccc; border-radius: 4px; }
+        .borrar-btn { background-color: #ff4d4d; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; align-self: center; }
+        .titulo-col { font-weight: bold; text-align: center; margin-bottom: 5px; color: #555; }
+        .foto-container { position: relative; width: 100%; height: 100%; min-height: 300px; border: 1px solid #ccc; border-radius: 4px; overflow: hidden; background-color: #eee; }
+        .foto-container img { width: 100%; height: 100%; object-fit: contain; position: absolute; top: 0; left: 0; cursor: grab; transition: transform 0.2s ease-out; touch-action: none; }
+        .zoom-controls { position: absolute; top: 10px; right: 10px; z-index: 10; display: flex; flex-direction: column; }
+        .zoom-btn { width: 30px; height: 30px; font-size: 20px; font-weight: bold; background-color: rgba(255, 255, 255, 0.8); border: 1px solid #ccc; cursor: pointer; margin-bottom: 2px; }
+        .zoom-btn:hover { background-color: #fff; }
+        @media (max-width: 768px) { .registro { flex-direction: column; } }
+    </style>
+</head>
+<body>
+    <h1>Registro de Lectura de Medidores – Edición Nube ☁️</h1>
+    <label for="medidor">N° Medidor:</label>
+    <input type="text" id="medidor">
+
+    <label for="lectura">Lectura (kWh):</label>
+    <input type="text" id="lectura">
+
+    <label for="foto">Foto del Medidor (Máxima Calidad):</label>
+    <input type="file" id="foto" accept="image/*">
+
+    <div class="button-container">
+        <button onclick="guardarRegistro()" class="guardar-btn">Guardar en la Nube</button>
+        <button onclick="borrarTodos()" class="borrar-todos-btn">Borrar Todos</button>
+    </div>
+
+    <h2>Registros Guardados</h2>
+    <div id="registros"></div>
+
+    <script>
+    // --- CONFIGURACIÓN DE SERVICIOS ---
+    const CLOUD_NAME = "dhjsqpvxf";
+    const UPLOAD_PRESET = "iubbveg6";
+
+    // Tu configuración personal de Firebase que obtuvimos
+    const firebaseConfig = {
+        apiKey: "AIzaSyAMvE0ZJ0X9upRwp0Byz7Taoee_qX6rKbk",
+        authDomain: "registros-medidores-ap.firebaseapp.com",
+        projectId: "registros-medidores-ap",
+        storageBucket: "registros-medidores-ap.appspot.com",
+        messagingSenderId: "918106224992",
+        appId: "1:918106224992:web:b5ba4244cdc6314e3e0505"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore(); // Instancia de Firestore
+
+    let escalas = {}; // Para el zoom de las imágenes
+
+    // --- FUNCIONES DE LA BASE DE DATOS (NUEVO) ---
+
+    async function mostrarRegistros() {
+        const registrosDiv = document.getElementById("registros");
+        registrosDiv.innerHTML = "Cargando registros desde la nube...";
+
+        try {
+            // Obtener registros de Firestore, ordenados por fecha de creación
+            const snapshot = await db.collection("registros").orderBy("timestamp", "desc").get();
+            
+            if (snapshot.empty) {
+                registrosDiv.innerHTML = "No hay registros guardados.";
+                return;
+            }
+
+            registrosDiv.innerHTML = ""; // Limpiar el div para mostrar los nuevos datos
+            snapshot.forEach(doc => {
+                const reg = doc.data();
+                const registroDiv = document.createElement("div");
+                registroDiv.className = "registro";
+                registroDiv.setAttribute('data-id', doc.id); // Guardar el ID del documento
+
+                registroDiv.innerHTML = `
+                    <div class="info columna">
+                        <p><b>N° Medidor:</b> ${reg.nro}</p>
+                        <p><b>Lectura:</b> ${reg.lectura} kWh</p>
+                        <p><b>Fecha:</b> ${new Date(reg.timestamp).toLocaleString()}</p>
+                        <p><b>Ubicación:</b> ${reg.lat.toFixed(5)}, ${reg.lon.toFixed(5)}</p>
+                        <a href="https://www.google.com/maps?q=${reg.lat},${reg.lon}" target="_blank">Ver en Mapa</a>
+                    </div>
+                    <div class="columna">
+                        <div class="titulo-col">Foto</div>
+                        <div class="foto-container" id="container-${doc.id}">
+                            <img id="img-${doc.id}" src="${reg.foto}">
+                            <div class="zoom-controls">
+                                <button class="zoom-btn" onclick="zoomImagen('img-${doc.id}', 1.2 )">+</button>
+                                <button class="zoom-btn" onclick="zoomImagen('img-${doc.id}', 0.8)">-</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="columna">
+                        <div class="titulo-col">Mapa</div>
+                        <div class="mapa" id="map${doc.id}"></div>
+                    </div>
+                    <div class="columna" style="flex:0.3; justify-content:center;">
+                        <button class="borrar-btn" onclick="borrarRegistro('${doc.id}')">Borrar</button>
+                    </div>
+                `;
+                registrosDiv.appendChild(registroDiv);
+
+                // Cargar mapa y activar zoom/arrastre
+                const map = L.map(`map${doc.id}`).setView([reg.lat, reg.lon], 16);
+                L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19 } ).addTo(map);
+                L.marker([reg.lat, reg.lon]).addTo(map).bindPopup("Ubicación del medidor").openPopup();
+                activarArrastre(`container-${doc.id}`);
+            });
+        } catch (error) {
+            console.error("Error al cargar registros: ", error);
+            registrosDiv.innerHTML = "Error al cargar los registros. Revisa la consola.";
+        }
+    }
+
+    async function guardarRegistro() {
+        const nro = document.getElementById("medidor").value.trim();
+        const lectura = document.getElementById("lectura").value.trim();
+        const fotoFile = document.getElementById("foto").files[0];
+
+        if (!nro || !lectura || !fotoFile) {
+            alert("Por favor, completa todos los campos.");
+            return;
+        }
+
+        const botonGuardar = document.querySelector('.guardar-btn');
+        const textoOriginal = botonGuardar.textContent;
+        botonGuardar.textContent = "Subiendo y Guardando...";
+        botonGuardar.disabled = true;
+
+        try {
+            // 1. Subir imagen a Cloudinary
+            const fotoURL = await subirImagenACloudinary(fotoFile);
+
+            // 2. Obtener geolocalización
+            const pos = await new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject);
+            });
+
+            // 3. Crear objeto de registro
+            const registro = {
+                nro: nro,
+                lectura: lectura,
+                foto: fotoURL,
+                lat: pos.coords.latitude,
+                lon: pos.coords.longitude,
+                timestamp: Date.now() // Usamos un timestamp para ordenar
+            };
+
+            // 4. Guardar en Firestore
+            await db.collection("registros").add(registro);
+
+            alert("¡Registro guardado en la nube con éxito!");
+            
+            // 5. Limpiar y recargar
+            document.getElementById("medidor").value = "";
+            document.getElementById("lectura").value = "";
+            document.getElementById("foto").value = "";
+            mostrarRegistros();
+
+        } catch (error) {
+            console.error("Error en el proceso de guardado: ", error);
+            alert("Error: " + error.message);
+        } finally {
+            botonGuardar.textContent = textoOriginal;
+            botonGuardar.disabled = false;
+        }
+    }
+
+    async function borrarRegistro(id) {
+        if (!confirm("¿Estás seguro de que quieres borrar este registro de la nube?")) return;
+        try {
+            await db.collection("registros").doc(id).delete();
+            alert("Registro eliminado.");
+            mostrarRegistros(); // Recargar la lista
+        } catch (error) {
+            console.error("Error al borrar el registro: ", error);
+            alert("No se pudo eliminar el registro.");
+        }
+    }
+
+    async function borrarTodos() {
+        if (!confirm("¡CUIDADO! ¿Estás seguro de que quieres borrar TODOS los registros de la base de datos? Esta acción es irreversible.")) return;
+        
+        try {
+            const snapshot = await db.collection("registros").get();
+            if (snapshot.empty) {
+                alert("No hay registros para borrar.");
+                return;
+            }
+            // Borrar cada documento en un lote
+            const batch = db.batch();
+            snapshot.docs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+            alert("Todos los registros han sido eliminados de la nube.");
+            mostrarRegistros();
+        } catch (error) {
+            console.error("Error al borrar todos los registros: ", error);
+            alert("Ocurrió un error al intentar borrar todo.");
+        }
+    }
+
+    // --- FUNCIONES AUXILIARES (Cloudinary, Zoom, Arrastre) ---
+    async function subirImagenACloudinary(file) {
+        const url = `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`;
+        const formData = new FormData( );
+        formData.append('file', file);
+        formData.append('upload_preset', UPLOAD_PRESET);
+        const response = await fetch(url, { method: 'POST', body: formData });
+        if (!response.ok) throw new Error('No se pudo subir la imagen a Cloudinary.');
+        const data = await response.json();
+        return data.secure_url;
+    }
+
+    function zoomImagen(imgId, factor) {
+        const img = document.getElementById(imgId);
+        if (!escalas[imgId]) escalas[imgId] = 1;
+        escalas[imgId] *= factor;
+        if (escalas[imgId] < 1) escalas[imgId] = 1;
+        if (escalas[imgId] > 10) escalas[imgId] = 10;
+        img.style.transform = `scale(${escalas[imgId]})`;
+        if (escalas[imgId] === 1) {
+            img.style.left = '0px';
+            img.style.top = '0px';
+        }
+    }
+
+    function activarArrastre(containerId) {
+        const container = document.getElementById(containerId);
+        const img = container.querySelector('img');
+        let isDown = false, startX, startY, scrollLeft, scrollTop;
+        const start = (e) => { if (escalas[img.id] <= 1) return; isDown = true; img.style.cursor = 'grabbing'; const pageX = e.pageX || e.touches[0].pageX; const pageY = e.pageY || e.touches[0].pageY; startX = pageX - container.offsetLeft; startY = pageY - container.offsetTop; scrollLeft = img.offsetLeft; scrollTop = img.offsetTop; };
+        const end = () => { isDown = false; img.style.cursor = 'grab'; };
+        const move = (e) => { if (!isDown) return; e.preventDefault(); const pageX = e.pageX || e.touches[0].pageX; const pageY = e.pageY || e.touches[0].pageY; const x = pageX - container.offsetLeft; const y = pageY - container.offsetTop; const walkX = (x - startX); const walkY = (y - startY); img.style.left = (scrollLeft + walkX) + 'px'; img.style.top = (scrollTop + walkY) + 'px'; };
+        container.addEventListener('mousedown', start); container.addEventListener('mouseleave', end); container.addEventListener('mouseup', end); container.addEventListener('mousemove', move);
+        container.addEventListener('touchstart', start); container.addEventListener('touchend', end); container.addEventListener('touchmove', move);
+    }
+
+    // --- INICIALIZACIÓN ---
+    document.addEventListener('DOMContentLoaded', mostrarRegistros);
+    </script>
+</body>
+</html>
